@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AgentFuse Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+    header { background: #1a1d2e; border-bottom: 1px solid #2d3748; padding: 16px 24px; display: flex; align-items: center; gap: 12px; }
+    header h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+    header .badge { background: #e53e3e; color: #fff; font-size: 0.7rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    header .badge.ok { background: #38a169; }
+    .subtitle { font-size: 0.8rem; color: #718096; margin-left: auto; }
+    .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+    .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 28px; }
+    .card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; }
+    .card .label { font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+    .card .value { font-size: 1.8rem; font-weight: 700; color: #fff; }
+    .card .value.red { color: #fc8181; }
+    .card .value.yellow { color: #f6e05e; }
+    .card .value.green { color: #68d391; }
+    .card .sub { font-size: 0.8rem; color: #718096; margin-top: 4px; }
+    .section-title { font-size: 0.85rem; font-weight: 600; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+    .sessions-table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+    .sessions-table th { background: #1a1d2e; text-align: left; padding: 10px 14px; font-size: 0.75rem; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #2d3748; }
+    .sessions-table td { padding: 12px 14px; border-bottom: 1px solid #1e2230; font-size: 0.875rem; vertical-align: middle; }
+    .sessions-table tr:hover td { background: #1e2230; }
+    .status-pill { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+    .status-pill.active { background: #276749; color: #68d391; }
+    .status-pill.halted { background: #742a2a; color: #fc8181; }
+    .progress-bar { width: 120px; height: 6px; background: #2d3748; border-radius: 3px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; background: #38a169; transition: width 0.3s; }
+    .progress-fill.warn { background: #d69e2e; }
+    .progress-fill.over { background: #e53e3e; }
+    .empty { text-align: center; padding: 60px 20px; color: #4a5568; }
+    .empty h3 { font-size: 1.1rem; margin-bottom: 8px; }
+    .empty p { font-size: 0.85rem; line-height: 1.6; }
+    .empty code { background: #1a1d2e; padding: 2px 6px; border-radius: 4px; font-size: 0.8rem; color: #90cdf4; }
+    .refresh-btn { background: #2d3748; border: 1px solid #4a5568; color: #e2e8f0; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; margin-left: auto; display: block; margin-bottom: 12px; }
+    .refresh-btn:hover { background: #4a5568; }
+    .file-hint { font-size: 0.75rem; color: #4a5568; margin-top: 20px; text-align: center; }
+    #drop-zone { border: 2px dashed #2d3748; border-radius: 10px; padding: 30px; text-align: center; color: #4a5568; cursor: pointer; transition: all 0.2s; margin-bottom: 24px; }
+    #drop-zone.hover { border-color: #4299e1; color: #90cdf4; }
+    #drop-zone p { font-size: 0.85rem; }
+    #drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span>⚡</span>
+    <h1>AgentFuse</h1>
+    <span class="badge ok" id="status-badge">CIRCUIT OK</span>
+    <span class="subtitle">Financial Circuit Breaker for AI Agents</span>
+  </header>
+
+  <div class="container">
+
+    <div class="summary-grid" id="summary-grid">
+      <div class="card">
+        <div class="label">Total Sessions</div>
+        <div class="value" id="total-sessions">—</div>
+        <div class="sub">active + halted</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Spend</div>
+        <div class="value" id="total-spend">—</div>
+        <div class="sub">across all sessions</div>
+      </div>
+      <div class="card">
+        <div class="label">Halted Sessions</div>
+        <div class="value red" id="halted-count">—</div>
+        <div class="sub">budget exceeded</div>
+      </div>
+      <div class="card">
+        <div class="label">Total API Calls</div>
+        <div class="value" id="total-calls">—</div>
+        <div class="sub">tracked calls</div>
+      </div>
+    </div>
+
+    <div id="drop-zone">
+      <div class="icon">📂</div>
+      <p>Drop your <strong>sessions.json</strong> file here to visualize your budget data</p>
+      <p style="margin-top:6px;font-size:0.75rem;">Or click to browse</p>
+      <input type="file" id="file-input" accept=".json" style="display:none" />
+    </div>
+
+    <div id="table-section" style="display:none">
+      <div style="display:flex;align-items:center;margin-bottom:12px;">
+        <span class="section-title" style="margin-bottom:0">Budget Sessions</span>
+        <button class="refresh-btn" id="load-again-btn">Load another file</button>
+      </div>
+      <table class="sessions-table" id="sessions-table">
+        <thead>
+          <tr>
+            <th>Session ID</th>
+            <th>Status</th>
+            <th>Model</th>
+            <th>Spent / Budget</th>
+            <th>Progress</th>
+            <th>Calls</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody id="sessions-body"></tbody>
+      </table>
+    </div>
+
+    <div class="empty" id="empty-state" style="display:none">
+      <h3>No sessions yet</h3>
+      <p>Start tracking with:<br />
+        <code>create_budget_session</code> → <code>track_tokens</code> → <code>check_budget</code>
+      </p>
+    </div>
+
+    <div class="file-hint" id="file-hint">sessions.json is stored next to index.js on your machine</div>
+  </div>
+
+  <script>
+    function fmt(n) {
+      if (n === undefined || n === null) return '—';
+      return '$' + Number(n).toFixed(4);
+    }
+    function fmtDate(s) {
+      if (!s) return '—';
+      return new Date(s).toLocaleString();
+    }
+
+    function renderSessions(data) {
+      const sessions = Object.values(data.sessions || {});
+      document.getElementById('total-sessions').textContent = sessions.length;
+      const totalSpend = sessions.reduce((a, s) => a + (s.total_cost_usd || 0), 0);
+      document.getElementById('total-spend').textContent = '$' + totalSpend.toFixed(4);
+      const halted = sessions.filter(s => s.status === 'halted');
+      document.getElementById('halted-count').textContent = halted.length;
+      const badge = document.getElementById('status-badge');
+      if (halted.length > 0) { badge.textContent = halted.length + ' HALTED'; badge.className = 'badge'; }
+      else { badge.textContent = 'CIRCUIT OK'; badge.className = 'badge ok'; }
+      const totalCalls = sessions.reduce((a, s) => a + (s.calls ? s.calls.length : 0), 0);
+      document.getElementById('total-calls').textContent = totalCalls;
+
+      const tbody = document.getElementById('sessions-body');
+      tbody.innerHTML = '';
+      if (sessions.length === 0) {
+        document.getElementById('empty-state').style.display = '';
+        document.getElementById('table-section').style.display = 'none';
+        return;
+      }
+      document.getElementById('table-section').style.display = '';
+      document.getElementById('empty-state').style.display = 'none';
+
+      sessions.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      for (const s of sessions) {
+        const pct = Math.min(100, (s.total_cost_usd / s.budget_usd) * 100);
+        const fillClass = pct >= 100 ? 'over' : pct >= 80 ? 'warn' : '';
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${s.session_id}</strong>${s.description ? '<br><span style="color:#718096;font-size:0.75rem">'+s.description+'</span>' : ''}</td>
+          <td><span class="status-pill ${s.status}">${s.status}</span></td>
+          <td style="color:#90cdf4">${s.model || '—'}</td>
+          <td>${fmt(s.total_cost_usd)} / ${fmt(s.budget_usd)}</td>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div class="progress-bar"><div class="progress-fill ${fillClass}" style="width:${pct}%"></div></div>
+              <span style="font-size:0.75rem;color:#718096">${pct.toFixed(0)}%</span>
+            </div>
+          </td>
+          <td>${(s.calls || []).length}</td>
+          <td style="color:#718096;font-size:0.75rem">${fmtDate(s.created_at)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // Drag-drop
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('hover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('hover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault(); dropZone.classList.remove('hover');
+      const file = e.dataTransfer.files[0];
+      if (file) loadFile(file);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); });
+
+    document.getElementById('load-again-btn').addEventListener('click', () => {
+      document.getElementById('table-section').style.display = 'none';
+      document.getElementById('drop-zone').style.display = '';
+      document.getElementById('file-hint').style.display = '';
+    });
+
+    function loadFile(file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          document.getElementById('drop-zone').style.display = 'none';
+          document.getElementById('file-hint').style.display = 'none';
+          renderSessions(data);
+        } catch { alert('Invalid JSON file'); }
+      };
+      reader.readAsText(file);
+    }
+
+    // Try auto-load from same origin (works when served locally)
+    fetch('sessions.json')
+      .then(r => r.json())
+      .then(data => { document.getElementById('drop-zone').style.display = 'none'; renderSessions(data); })
+      .catch(() => { /* no sessions.json served — show drop zone */ });
+  </script>
+</body>
+</html>
