@@ -1,0 +1,20 @@
+{
+  "name": "agent-fuse",
+  "version": "1.0.0",
+  "description": "Financial Circuit Breaker MCP Server — stops AI agents from burning your budget",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "agent-fuse": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "test": "node test.js"
+  },
+  "keywords": ["mcp", "ai-agents", "budget", "cost-control", "circuit-breaker", "token-tracking"],
+  "author": "RLASAF12",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
