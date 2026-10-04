@@ -1,3 +1,5 @@
+> **Archived.** This repo moved to [RLASAF12/agent-guardrails](https://github.com/RLASAF12/agent-guardrails/tree/main/agent-fuse) (folder `agent-fuse/`, full history preserved). Archived 2026-10-04.
+
 # ⚡ AgentFuse — Financial Circuit Breaker for AI Agents
 
 > **Stop your AI agent before it burns your budget.**
